@@ -1,0 +1,7 @@
+1)Install react router
+2)Import BrowserRouter iin the main.jsx
+3)Import Route, Routes in what the routing are you looking for.
+4)Use the Routes tag below where you want to route to the page
+5)/ is the initial screen where the page loads on.
+6)Import "Link" from the "react-router-dom" to where you want to add the navigation using Routes
+7)After use the Link tag for each element to wrap the tag you want to navigate.
