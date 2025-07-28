@@ -103,7 +103,7 @@ const Footer = () => {
         {/* Copyright */}
         <Box mt={5} textAlign="center">
           <Typography variant="body2">
-            {currentYear} Anime Blog. All rights reserved.
+          &copy; {currentYear} AnimeHub. All rights reserved.
           </Typography>
         </Box>
       </Container>
