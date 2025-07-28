@@ -1,5 +1,6 @@
 import React from 'react';
 import { Container, Typography, Box, Grid, Paper, Avatar, useTheme } from '@mui/material';
+import Footer from '../Components/Footer';
 import { useMediaQuery } from '@mui/material';
 
 const About = () => {
@@ -7,7 +8,8 @@ const About = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
-    <Container maxWidth="lg" sx={{ 
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Container maxWidth="lg" sx={{ flex: '1 0 auto', 
       py: { xs: 4, sm: 6, md: 8 },
       display: { md: 'flex' },
       flexDirection: { md: 'column' },
@@ -185,6 +187,8 @@ const About = () => {
         </Grid>
       </Box>
     </Container>
+    <Footer />
+  </Box>
   );
 };
 

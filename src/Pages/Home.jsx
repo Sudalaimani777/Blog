@@ -1,5 +1,6 @@
 import React from 'react';
-import { Grid, Card, CardMedia, CardContent, Typography, CardActions, Button, Container } from '@mui/material';
+import { Grid, Card, CardMedia, CardContent, Typography, CardActions, Button, Container, Box } from '@mui/material';
+import Footer from '../Components/Footer';
 
 const animeList = [
   {
@@ -42,14 +43,19 @@ const animeList = [
 
 const Home = () => {
   return (
-    <Container maxWidth="lg" sx={{ 
-      py: { xs: 3, sm: 4, md: 6 }, 
-      px: { xs: 2, sm: 3, md: 4 },
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center' 
-    }}>
-      <Typography 
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          py: { xs: 3, sm: 4, md: 6 }, 
+          px: { xs: 2, sm: 3, md: 4 },
+          flex: '1 0 auto',
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center' 
+        }}
+      >
+        <Typography 
         variant="h3" 
         align="center" 
         gutterBottom 
@@ -159,9 +165,11 @@ const Home = () => {
             
           </Grid>
         ))}
-      </Grid>
-    </Container>
+        </Grid>
+      </Container>
+      <Footer />
+    </Box>
   );
-}
+};
 
-export default Home
+export default Home;

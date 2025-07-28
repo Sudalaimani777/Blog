@@ -35,6 +35,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import Footer from '../Components/Footer';
 
 const Contact = () => {
     // State for storing the form data
@@ -309,8 +310,9 @@ const Contact = () => {
 
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <Container maxWidth="lg" sx={{ py: 4, flex: '1 0 auto' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
                     <Typography variant="h4" component="h1">
                         Contact Management
@@ -627,8 +629,9 @@ const Contact = () => {
                     />
                 </Paper>
             </Container>
-        </LocalizationProvider>
-    )
+            </LocalizationProvider>
+            <Footer />
+        </Box>
+    );
 }
 export default Contact;
-
