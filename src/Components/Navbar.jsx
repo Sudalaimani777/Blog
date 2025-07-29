@@ -30,6 +30,7 @@ const Navbar = () => {
     { text: 'Home', path: '/' },
     { text: 'About', path: '/About' },
     { text: 'Contact', path: '/Contact' },
+    { text: 'Resume', path: '/resume' },
   ];
 
   const drawer = (

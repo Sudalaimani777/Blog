@@ -33,6 +33,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DescriptionIcon from '@mui/icons-material/Description';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import Footer from '../Components/Footer';
@@ -605,9 +606,18 @@ const Contact = () => {
                                                         <EditIcon />
                                                     </IconButton>
                                                     <IconButton 
+                                                        color="primary" 
+                                                        onClick={() => window.location.href = '/resume'}
+                                                        size="small"
+                                                        title="View Resume"
+                                                    >
+                                                        <DescriptionIcon />
+                                                    </IconButton>
+                                                    <IconButton 
                                                         color="error" 
                                                         onClick={() => handleDelete(contact.id)}
                                                         size="small"
+                                                        title="Delete Contact"
                                                     >
                                                         <DeleteIcon />
                                                     </IconButton>
