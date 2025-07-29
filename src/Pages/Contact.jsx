@@ -74,17 +74,69 @@ const Contact = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
 
+    // State for viewing contact details
+    const [viewingContact, setViewingContact] = useState(null);
+
     // Load contacts from localStorage on component mount
     useEffect(() => {
-        const savedContacts = localStorage.getItem('contacts');
-        if (savedContacts) {
-            setContacts(JSON.parse(savedContacts));
-        }
+        const loadContacts = () => {
+            try {
+                const savedContacts = localStorage.getItem('contacts');
+                if (savedContacts) {
+                    const parsedContacts = JSON.parse(savedContacts);
+                    // Safely convert date strings to Date objects
+                    const contactsWithDates = parsedContacts.map(contact => {
+                        let date;
+                        try {
+                            date = new Date(contact.date);
+                            if (isNaN(date.getTime())) {
+                                console.warn('Invalid date found, using current date');
+                                date = new Date();
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing date, using current date', e);
+                            date = new Date();
+                        }
+                        return {
+                            ...contact,
+                            date: date
+                        };
+                    });
+                    setContacts(contactsWithDates);
+                }
+            } catch (error) {
+                console.error('Error loading contacts from localStorage:', error);
+                // Reset to empty array if there's an error
+                setContacts([]);
+                localStorage.removeItem('contacts');
+            }
+        };
+
+        loadContacts();
     }, []);
 
     // Save contacts to localStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem('contacts', JSON.stringify(contacts));
+        if (contacts.length === 0) return; // Don't save empty array on initial load
+        
+        try {
+            // Convert Date objects to ISO strings for storage
+            const contactsForStorage = contacts.map(contact => {
+                // Ensure we have a valid date
+                const dateToSave = contact.date && contact.date instanceof Date && !isNaN(contact.date.getTime())
+                    ? contact.date.toISOString()
+                    : new Date().toISOString();
+                
+                return {
+                    ...contact,
+                    date: dateToSave
+                };
+            });
+            
+            localStorage.setItem('contacts', JSON.stringify(contactsForStorage));
+        } catch (error) {
+            console.error('Error saving contacts to localStorage:', error);
+        }
     }, [contacts]);
 
     // Form Validation
@@ -196,32 +248,32 @@ const Contact = () => {
 
     // Reset form
     const resetForm = () => {
-        setFormData({
-            id: '',
-            firstName: "",
-            lastName: "",
-            email: "",
-            mobileNumber: "",
-            gender: "",
-            lang: [],
-            date: new Date(),
-            address: "",
-            status: "college",
-            courses: "engineering",
-            skills: "",
-            experiences: ""
-        });
-        setError({});
-    };
+    setFormData({
+        id: '',
+        firstName: "",
+        lastName: "",
+        email: "",
+        mobileNumber: "",
+        gender: "",
+        lang: [],
+        date: new Date(),
+        address: "",
+        status: "college",
+        courses: "engineering",
+        skills: "",
+        experiences: ""
+    });
+    setError({});
+};
 
     // Handle edit
     const handleEdit = (contact) => {
-        setFormData({
-            ...contact,
-            date: new Date(contact.date) // Ensure date is a Date object
-        });
-        setOpen(true);
-    };
+    setFormData({
+        ...contact,
+        date: new Date(contact.date) // Ensure date is a Date object
+    });
+    setOpen(true);
+};
 
     // Handle delete
     const handleDelete = (id) => {
@@ -318,6 +370,11 @@ const Contact = () => {
         }
     };
 
+    // Handle view details
+    const handleViewDetails = (contact) => {
+        setViewingContact(contact);
+    };
+
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -346,8 +403,9 @@ const Contact = () => {
                                         <TableCell>Name</TableCell>
                                         <TableCell>Email</TableCell>
                                         <TableCell>Mobile</TableCell>
-                                        <TableCell>Gender</TableCell>
-                                        <TableCell>Date</TableCell>
+                                        <TableCell>Status</TableCell>
+                                        <TableCell>Courses</TableCell>
+                                        <TableCell>Date Added</TableCell>
                                         <TableCell>Actions</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -358,38 +416,48 @@ const Contact = () => {
                                                 <TableCell>{`${contact.firstName} ${contact.lastName}`}</TableCell>
                                                 <TableCell>{contact.email}</TableCell>
                                                 <TableCell>{contact.mobileNumber}</TableCell>
-                                                <TableCell>{contact.gender}</TableCell>
+                                                <TableCell>
+                                                    {contact.status === 'school' ? 'School' : 
+                                                     contact.status === 'college' ? 'College' : 'Working'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {contact.courses.charAt(0).toUpperCase() + contact.courses.slice(1)}
+                                                </TableCell>
                                                 <TableCell>{new Date(contact.date).toLocaleDateString()}</TableCell>
                                                 <TableCell>
+                                                    <IconButton 
+                                                        color="info" 
+                                                        onClick={() => handleViewDetails(contact)}
+                                                        aria-label="view details"
+                                                        title="View Details"
+                                                    >
+                                                        <InfoIcon />
+                                                    </IconButton>
                                                     <IconButton 
                                                         color="primary" 
                                                         onClick={() => handleEdit(contact)}
                                                         aria-label="edit"
+                                                        title="Edit"
                                                     >
                                                         <EditIcon />
                                                     </IconButton>
                                                     <IconButton 
                                                         color="error" 
-                                                        onClick={() => handleDelete(contact.id)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(contact.id);
+                                                        }}
                                                         aria-label="delete"
+                                                        title="Delete"
                                                     >
                                                         <DeleteIcon />
-                                                    </IconButton>
-                                                    <IconButton 
-                                                        color="info"
-                                                        onClick={() => {
-                                                            window.location.href = '/resume';
-                                                        }}
-                                                        aria-label="view resume"
-                                                    >
-                                                        <DescriptionIcon />
                                                     </IconButton>
                                                 </TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={6} align="center">
+                                            <TableCell colSpan={7} align="center">
                                                 No contacts found. Add a new contact to get started.
                                             </TableCell>
                                         </TableRow>
@@ -441,7 +509,233 @@ const Contact = () => {
                             </DialogTitle>
                             <DialogContent sx={{ pt: 3 }}>
                                 <Grid container spacing={3}>
-                                    {/* Form content will go here */}
+                                    {/* First Name */}
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="First Name"
+                                            name="firstName"
+                                            value={formData.firstName}
+                                            onChange={handleChange}
+                                            error={!!error.firstName}
+                                            helperText={error.firstName}
+                                            required
+                                        />
+                                    </Grid>
+
+                                    {/* Last Name */}
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Last Name"
+                                            name="lastName"
+                                            value={formData.lastName}
+                                            onChange={handleChange}
+                                            error={!!error.lastName}
+                                            helperText={error.lastName}
+                                            required
+                                        />
+                                    </Grid>
+
+                                    {/* Email */}
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Email"
+                                            name="email"
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            error={!!error.email}
+                                            helperText={error.email}
+                                            required
+                                        />
+                                    </Grid>
+
+                                    {/* Mobile Number */}
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Mobile Number"
+                                            name="mobileNumber"
+                                            value={formData.mobileNumber}
+                                            onChange={handleChange}
+                                            error={!!error.mobileNumber}
+                                            helperText={error.mobileNumber}
+                                            required
+                                        />
+                                    </Grid>
+
+                                    {/* Gender */}
+                                    <Grid item xs={12}>
+                                        <FormControl component="fieldset" error={!!error.gender}>
+                                            <FormLabel component="legend">Gender</FormLabel>
+                                            <RadioGroup
+                                                row
+                                                name="gender"
+                                                value={formData.gender}
+                                                onChange={handleRadioChange}
+                                            >
+                                                <FormControlLabel value="male" control={<Radio />} label="Male" />
+                                                <FormControlLabel value="female" control={<Radio />} label="Female" />
+                                                <FormControlLabel value="other" control={<Radio />} label="Other" />
+                                            </RadioGroup>
+                                            {error.gender && <FormHelperText>{error.gender}</FormHelperText>}
+                                        </FormControl>
+                                    </Grid>
+
+                                    {/* Languages */}
+                                    <Grid item xs={12}>
+                                        <FormControl component="fieldset" error={!!error.lang}>
+                                            <FormLabel component="legend">Languages Known</FormLabel>
+                                            <div>
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={formData.lang.includes('english')}
+                                                            onChange={handleCheckBox}
+                                                            name="english"
+                                                        />
+                                                    }
+                                                    label="English"
+                                                />
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={formData.lang.includes('japanese')}
+                                                            onChange={handleCheckBox}
+                                                            name="japanese"
+                                                        />
+                                                    }
+                                                    label="Japanese"
+                                                />
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={formData.lang.includes('tamil')}
+                                                            onChange={handleCheckBox}
+                                                            name="tamil"
+                                                        />
+                                                    }
+                                                    label="Tamil"
+                                                />
+                                            </div>
+                                            {error.lang && <FormHelperText>{error.lang}</FormHelperText>}
+                                        </FormControl>
+                                    </Grid>
+
+                                    {/* Date of Birth */}
+                                    <Grid item xs={12} sm={6}>
+                                        <DatePicker
+                                            label="Date of Birth"
+                                            value={formData.date}
+                                            onChange={(newValue) => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    date: newValue
+                                                }));
+                                                if (error.date) {
+                                                    setError(prev => ({
+                                                        ...prev,
+                                                        date: ''
+                                                    }));
+                                                }
+                                            }}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    fullWidth
+                                                    error={!!error.date}
+                                                    helperText={error.date}
+                                                    required
+                                                />
+                                            )}
+                                        />
+                                    </Grid>
+
+                                    {/* Status */}
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            select
+                                            fullWidth
+                                            label="Status"
+                                            name="status"
+                                            value={formData.status}
+                                            onChange={handleChange}
+                                            error={!!error.status}
+                                            helperText={error.status}
+                                            required
+                                        >
+                                            <MenuItem value="school">School</MenuItem>
+                                            <MenuItem value="college">College</MenuItem>
+                                            <MenuItem value="working">Working Professional</MenuItem>
+                                        </TextField>
+                                    </Grid>
+
+                                    {/* Courses */}
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            select
+                                            fullWidth
+                                            label="Courses"
+                                            name="courses"
+                                            value={formData.courses}
+                                            onChange={handleChange}
+                                            error={!!error.courses}
+                                            helperText={error.courses}
+                                            required
+                                        >
+                                            <MenuItem value="engineering">Engineering</MenuItem>
+                                            <MenuItem value="medicine">Medicine</MenuItem>
+                                            <MenuItem value="arts">Arts</MenuItem>
+                                            <MenuItem value="science">Science</MenuItem>
+                                            <MenuItem value="commerce">Commerce</MenuItem>
+                                        </TextField>
+                                    </Grid>
+
+                                    {/* Skills */}
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Skills"
+                                            name="skills"
+                                            value={formData.skills}
+                                            onChange={handleChange}
+                                            multiline
+                                            rows={2}
+                                            placeholder="Enter your skills separated by commas"
+                                        />
+                                    </Grid>
+
+                                    {/* Address */}
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Address"
+                                            name="address"
+                                            value={formData.address}
+                                            onChange={handleChange}
+                                            error={!!error.address}
+                                            helperText={error.address || "Please enter your full address"}
+                                            multiline
+                                            rows={3}
+                                            required
+                                        />
+                                    </Grid>
+
+                                    {/* Experiences */}
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Work/Project Experiences"
+                                            name="experiences"
+                                            value={formData.experiences}
+                                            onChange={handleChange}
+                                            multiline
+                                            rows={4}
+                                            placeholder="Describe your work experiences or projects"
+                                        />
+                                    </Grid>
                                 </Grid>
                             </DialogContent>
                             <DialogActions sx={{ p: 3, pt: 0 }}>
@@ -463,6 +757,78 @@ const Contact = () => {
                                 </Button>
                             </DialogActions>
                         </Box>
+                    </Dialog>
+                    
+                    {/* View Details Dialog */}
+                    <Dialog
+                        open={Boolean(viewingContact)}
+                        onClose={() => setViewingContact(null)}
+                        maxWidth="md"
+                        fullWidth
+                    >
+                        {viewingContact && (
+                            <>
+                                <DialogTitle sx={{ 
+                                    bgcolor: 'primary.main', 
+                                    color: 'white',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1
+                                }}>
+                                    <ContactMailIcon />
+                                    Contact Details
+                                </DialogTitle>
+                                <DialogContent sx={{ pt: 3 }}>
+                                    <Grid container spacing={3}>
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="h6" gutterBottom>Personal Information</Typography>
+                                            <Typography><strong>Name:</strong> {`${viewingContact.firstName} ${viewingContact.lastName}`}</Typography>
+                                            <Typography><strong>Email:</strong> {viewingContact.email}</Typography>
+                                            <Typography><strong>Mobile:</strong> {viewingContact.mobileNumber}</Typography>
+                                            <Typography><strong>Gender:</strong> {viewingContact.gender.charAt(0).toUpperCase() + viewingContact.gender.slice(1)}</Typography>
+                                            <Typography><strong>Date of Birth:</strong> {new Date(viewingContact.date).toLocaleDateString()}</Typography>
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="h6" gutterBottom>Education & Status</Typography>
+                                            <Typography><strong>Status:</strong> 
+                                                {viewingContact.status === 'school' ? 'School' : 
+                                                 viewingContact.status === 'college' ? 'College' : 'Working Professional'}
+                                            </Typography>
+                                            <Typography><strong>Course:</strong> 
+                                                {viewingContact.courses.charAt(0).toUpperCase() + viewingContact.courses.slice(1)}
+                                            </Typography>
+                                            <Typography><strong>Languages:</strong> {viewingContact.lang.join(', ')}</Typography>
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <Typography variant="h6" gutterBottom>Address</Typography>
+                                            <Typography style={{ whiteSpace: 'pre-line' }}>{viewingContact.address}</Typography>
+                                        </Grid>
+                                        {viewingContact.skills && (
+                                            <Grid item xs={12}>
+                                                <Typography variant="h6" gutterBottom>Skills</Typography>
+                                                <Typography>{viewingContact.skills}</Typography>
+                                            </Grid>
+                                        )}
+                                        {viewingContact.experiences && (
+                                            <Grid item xs={12}>
+                                                <Typography variant="h6" gutterBottom>Work/Project Experiences</Typography>
+                                                <Typography style={{ whiteSpace: 'pre-line' }}>{viewingContact.experiences}</Typography>
+                                            </Grid>
+                                        )}
+                                    </Grid>
+                                </DialogContent>
+                                <DialogActions sx={{ p: 3, pt: 0 }}>
+                                    <Button 
+                                        onClick={() => setViewingContact(null)}
+                                        variant="outlined"
+                                        color="inherit"
+                                        startIcon={<CancelIcon />}
+                                    >
+                                        Close
+                                    </Button>
+                                </DialogActions>
+                            </>
+                        )}
                     </Dialog>
                 </Container>
             </LocalizationProvider>
