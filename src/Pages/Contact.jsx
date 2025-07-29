@@ -508,7 +508,7 @@ const Contact = () => {
                                 )}
                             </DialogTitle>
                             <DialogContent sx={{ pt: 3 }}>
-                                <Grid container spacing={3}>
+                                <Grid container spacing={3} sx={{ p: 3 }}>
                                     {/* First Name */}
                                     <Grid item xs={12} sm={6}>
                                         <TextField
