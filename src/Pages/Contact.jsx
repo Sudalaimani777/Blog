@@ -507,8 +507,8 @@ const Contact = () => {
                                     </>
                                 )}
                             </DialogTitle>
-                            <DialogContent sx={{ pt: 3 }}>
-                                <Grid container spacing={3} sx={{ p: 3 }}>
+                            <DialogContent sx={{ pt: 3 }} >
+                                <Grid container spacing={3} padding={3}>
                                     {/* First Name */}
                                     <Grid item xs={12} sm={6}>
                                         <TextField
@@ -630,27 +630,10 @@ const Contact = () => {
                                             label="Date of Birth"
                                             value={formData.date}
                                             onChange={(newValue) => {
-                                                // Ensure we have a valid date that's not in the future
-                                                const today = new Date();
-                                                today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
-                                                
-                                                let selectedDate = newValue ? new Date(newValue) : new Date();
-                                                
-                                                // If selected date is in the future, use today's date instead
-                                                if (selectedDate > today) {
-                                                    selectedDate = today;
-                                                }
-                                                
-                                                // Ensure it's a valid date
-                                                if (isNaN(selectedDate.getTime())) {
-                                                    selectedDate = today;
-                                                }
-                                                
                                                 setFormData(prev => ({
                                                     ...prev,
-                                                    date: selectedDate
+                                                    date: newValue
                                                 }));
-                                                
                                                 if (error.date) {
                                                     setError(prev => ({
                                                         ...prev,
@@ -658,13 +641,12 @@ const Contact = () => {
                                                     }));
                                                 }
                                             }}
-                                            maxDate={new Date()} // This disables future dates in the calendar
                                             renderInput={(params) => (
                                                 <TextField
                                                     {...params}
                                                     fullWidth
                                                     error={!!error.date}
-                                                    helperText={error.date || "Select a past or current date"}
+                                                    helperText={error.date}
                                                     required
                                                 />
                                             )}
