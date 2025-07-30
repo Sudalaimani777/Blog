@@ -888,7 +888,7 @@ const Contact = () => {
                                             navigate('/resume');
                                         }}
                                     >
-                                        Download Resume
+                                        Download 
                                     </Button>
                                 </DialogActions>
                             </>
