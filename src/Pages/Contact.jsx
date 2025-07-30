@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { useResume } from "../contexts/ResumeContext";
 import {
     Container,
     Typography,
@@ -45,6 +47,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import Footer from '../Components/Footer';
 
 const Contact = () => {
+    const { setResume } = useResume();
+    const navigate = useNavigate();
     // State for storing the form data
     const [formData, setFormData] = useState({
         id: '',
@@ -631,10 +635,18 @@ const Contact = () => {
                                             label="Date of Birth"
                                             value={formData.date}
                                             onChange={(newValue) => {
+                                                // Ensure the date is not in the future
+                                                const today = new Date();
+                                                today.setHours(23, 59, 59, 999); // Set to end of day for comparison
+                                                
+                                                // If the selected date is in the future, use today's date instead
+                                                const selectedDate = newValue > today ? today : newValue;
+                                                
                                                 setFormData(prev => ({
                                                     ...prev,
-                                                    date: newValue
+                                                    date: selectedDate
                                                 }));
+                                                
                                                 if (error.date) {
                                                     setError(prev => ({
                                                         ...prev,
@@ -642,12 +654,13 @@ const Contact = () => {
                                                     }));
                                                 }
                                             }}
+                                            maxDate={new Date()} // This will disable future dates in the calendar
                                             renderInput={(params) => (
                                                 <TextField
                                                     {...params}
                                                     fullWidth
                                                     error={!!error.date}
-                                                    helperText={error.date}
+                                                    helperText={error.date || "Select a date in the past"}
                                                     required
                                                 />
                                             )}
@@ -832,8 +845,8 @@ const Contact = () => {
                                         color="primary"
                                         startIcon={<DownloadIcon />}
                                         onClick={() => {
-                                            // TODO: Implement resume download functionality
-                                            alert('Downloading resume...');
+                                            setResume(viewingContact);
+                                            navigate('/resume');
                                         }}
                                     >
                                         Download Resume

@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
+import { ResumeProvider } from './contexts/ResumeContext';
 
 // Lazy load pages
 const Layout = lazy(() => import('./Layout'));
@@ -19,11 +20,13 @@ const Loading = () => (
 
 const App = () => {
   return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
-        <Route path="/*" element={<Layout />} />
-      </Routes>
-    </Suspense>
+    <ResumeProvider>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/*" element={<Layout />} />
+        </Routes>
+      </Suspense>
+    </ResumeProvider>
   );
 };
 
