@@ -41,6 +41,7 @@ import ContactMailIcon from '@mui/icons-material/ContactMail';
 import WorkIcon from '@mui/icons-material/Work';
 import HomeIcon from '@mui/icons-material/Home';
 import InfoIcon from '@mui/icons-material/Info';
+import DownloadIcon from '@mui/icons-material/Download';
 import Footer from '../Components/Footer';
 
 const Contact = () => {
@@ -825,6 +826,17 @@ const Contact = () => {
                                         startIcon={<CancelIcon />}
                                     >
                                         Close
+                                    </Button>
+                                    <Button 
+                                        variant="contained"
+                                        color="primary"
+                                        startIcon={<DownloadIcon />}
+                                        onClick={() => {
+                                            // TODO: Implement resume download functionality
+                                            alert('Downloading resume...');
+                                        }}
+                                    >
+                                        Download Resume
                                     </Button>
                                 </DialogActions>
                             </>
