@@ -82,6 +82,14 @@ const Contact = () => {
     // State for viewing contact details
     const [viewingContact, setViewingContact] = useState(null);
 
+    // Helper function to safely parse date
+    const parseDate = (dateString) => {
+        if (!dateString) return new Date();
+        
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? new Date() : date;
+    };
+
     // Load contacts from localStorage on component mount
     useEffect(() => {
         const loadContacts = () => {
@@ -89,31 +97,38 @@ const Contact = () => {
                 const savedContacts = localStorage.getItem('contacts');
                 if (savedContacts) {
                     const parsedContacts = JSON.parse(savedContacts);
-                    // Safely convert date strings to Date objects
-                    const contactsWithDates = parsedContacts.map(contact => {
-                        let date;
-                        try {
-                            date = new Date(contact.date);
-                            if (isNaN(date.getTime())) {
-                                console.warn('Invalid date found, using current date');
-                                date = new Date();
-                            }
-                        } catch (e) {
-                            console.warn('Error parsing date, using current date', e);
-                            date = new Date();
-                        }
-                        return {
-                            ...contact,
-                            date: date
-                        };
-                    });
+                    if (!Array.isArray(parsedContacts)) {
+                        throw new Error('Invalid contacts data format');
+                    }
+                    
+                    const contactsWithDates = parsedContacts.map(contact => ({
+                        ...contact,
+                        date: parseDate(contact.date),
+                        // Ensure all required fields have default values
+                        firstName: contact.firstName || '',
+                        lastName: contact.lastName || '',
+                        email: contact.email || '',
+                        mobileNumber: contact.mobileNumber || '',
+                        gender: contact.gender || '',
+                        lang: Array.isArray(contact.lang) ? contact.lang : [],
+                        address: contact.address || '',
+                        status: contact.status || 'college',
+                        courses: contact.courses || 'engineering',
+                        skills: contact.skills || '',
+                        experiences: contact.experiences || ''
+                    }));
+                    
                     setContacts(contactsWithDates);
                 }
             } catch (error) {
                 console.error('Error loading contacts from localStorage:', error);
                 // Reset to empty array if there's an error
                 setContacts([]);
-                localStorage.removeItem('contacts');
+                try {
+                    localStorage.removeItem('contacts');
+                } catch (e) {
+                    console.error('Error clearing corrupted contacts:', e);
+                }
             }
         };
 
@@ -122,25 +137,49 @@ const Contact = () => {
 
     // Save contacts to localStorage whenever it changes
     useEffect(() => {
-        if (contacts.length === 0) return; // Don't save empty array on initial load
+        if (contacts.length === 0) {
+            // Only clear storage if we're sure it's empty
+            try {
+                const currentContacts = localStorage.getItem('contacts');
+                if (currentContacts && JSON.parse(currentContacts).length > 0) {
+                    localStorage.setItem('contacts', JSON.stringify([]));
+                }
+            } catch (e) {
+                console.error('Error checking current contacts:', e);
+            }
+            return;
+        }
         
         try {
-            // Convert Date objects to ISO strings for storage
+            // Create a safe copy of contacts with proper serialization
             const contactsForStorage = contacts.map(contact => {
-                // Ensure we have a valid date
-                const dateToSave = contact.date && contact.date instanceof Date && !isNaN(contact.date.getTime())
-                    ? contact.date.toISOString()
-                    : new Date().toISOString();
+                const safeContact = { ...contact };
                 
-                return {
-                    ...contact,
-                    date: dateToSave
-                };
+                // Ensure we have a valid date
+                const date = contact.date || new Date();
+                safeContact.date = (date instanceof Date ? date : new Date(date)).toISOString();
+                
+                // Ensure all required fields exist
+                safeContact.lang = Array.isArray(contact.lang) ? contact.lang : [];
+                
+                return safeContact;
             });
             
             localStorage.setItem('contacts', JSON.stringify(contactsForStorage));
         } catch (error) {
             console.error('Error saving contacts to localStorage:', error);
+            // Try to recover by resetting to last good state
+            try {
+                const lastGoodState = localStorage.getItem('contacts');
+                if (lastGoodState) {
+                    setContacts(JSON.parse(lastGoodState).map(c => ({
+                        ...c,
+                        date: parseDate(c.date)
+                    })));
+                }
+            } catch (e) {
+                console.error('Error recovering from save error:', e);
+            }
         }
     }, [contacts]);
 
