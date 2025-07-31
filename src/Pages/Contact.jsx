@@ -190,9 +190,8 @@ const Contact = () => {
         e.preventDefault();
 
         // Validate form
-        const errors = validateForm(formData);
-        if (Object.keys(errors).length > 0) {
-            setError(errors);
+        const isValid = validateForm();
+        if (!isValid) {
             return;
         }
 
@@ -203,15 +202,18 @@ const Contact = () => {
                 toast.success("Contact updated successfully!");
             } else {
                 // Add new contact
-                const newContact = addContact(formData);
-                // Update form with the new contact's ID
-                updateFormData({ id: newContact.id });
+                addContact(formData);
                 toast.success("Contact added successfully!");
             }
-
-            // Reset form and close dialog
-            resetFormData();
+            
+            // Close the dialog
             setOpen(false);
+            
+            // Reset the form after a short delay to allow the dialog to close
+            setTimeout(() => {
+                resetForm();
+            }, 100);
+            
         } catch (error) {
             console.error('Error saving contact:', error);
             toast.error("Failed to save contact. Please try again.");
@@ -220,17 +222,49 @@ const Contact = () => {
 
     // Reset form
     const resetForm = () => {
+        // Reset form data using the context function
         resetFormData();
+        
+        // Clear any form errors
         setError({});
+        
+        // Ensure the form has the correct initial state
+        updateFormData({
+            ...formData,
+            id: '',
+            firstName: '',
+            lastName: '',
+            email: '',
+            mobileNumber: '',
+            gender: '',
+            lang: [],
+            date: new Date(),
+            address: '',
+            status: 'college',
+            courses: 'engineering',
+            skills: '',
+            experiences: ''
+        });
     };
 
     // Handle edit
     const handleEdit = (contact) => {
-        updateFormData({
+        // Reset any existing errors
+        setError({});
+        
+        // Make a copy of the contact to avoid mutating the original
+        const contactToEdit = {
             ...contact,
             date: new Date(contact.date) // Ensure date is a Date object
-        });
-        setOpen(true);
+        };
+        
+        // Update the form data with the contact to edit
+        updateFormData(contactToEdit);
+        
+        // Open the dialog after a small delay to ensure state is updated
+        setTimeout(() => {
+            setOpen(true);
+        }, 50);
     };
 
     // Handle delete
@@ -247,6 +281,7 @@ const Contact = () => {
 
     // Handle dialog open
     const handleClickOpen = () => {
+        // Always reset the form when opening the dialog for a new contact
         resetForm();
         setOpen(true);
     };
@@ -254,7 +289,7 @@ const Contact = () => {
     // Handle dialog close
     const handleClose = () => {
         setOpen(false);
-        resetForm();
+        // Don't reset form here to prevent race conditions
     };
 
     // Handle page change
@@ -601,10 +636,10 @@ const Contact = () => {
                                                 // If the selected date is in the future, use today's date instead
                                                 const selectedDate = newValue > today ? today : newValue;
                                                 
-                                                setFormData(prev => ({
-                                                    ...prev,
+                                                updateFormData({
+                                                    ...formData,
                                                     date: selectedDate
-                                                }));
+                                                });
                                                 
                                                 if (error.date) {
                                                     setError(prev => ({
