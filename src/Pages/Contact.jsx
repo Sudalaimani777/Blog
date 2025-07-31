@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useResume } from "../contexts/ResumeContext";
 import {
@@ -47,24 +47,14 @@ import DownloadIcon from '@mui/icons-material/Download';
 import Footer from '../Components/Footer';
 
 const Contact = () => {
-    const { setResume } = useResume();
+    const { 
+        setResume, 
+        formData, 
+        updateFormData, 
+        resetFormData,
+        setFormDirty
+    } = useResume();
     const navigate = useNavigate();
-    // State for storing the form data
-    const [formData, setFormData] = useState({
-        id: '',
-        firstName: "",
-        lastName: "",
-        email: "",
-        mobileNumber: "",
-        gender: "",
-        lang: [],
-        date: new Date(),
-        address: "",
-        status: "college",
-        courses: "engineering",
-        skills: "",
-        experiences: ""
-    });
 
     // State for storing the errors
     const [error, setError] = useState({});
@@ -92,18 +82,23 @@ const Contact = () => {
 
     // Load contacts and form data from localStorage on component mount
     useEffect(() => {
-        // Try to restore form data if it exists
-        const savedFormData = localStorage.getItem('currentFormData');
-        if (savedFormData) {
-            const parsedData = JSON.parse(savedFormData);
-            // Convert date string back to Date object
-            if (parsedData.date) {
-                parsedData.date = new Date(parsedData.date);
+        // Only try to restore form data if we're not coming from the Resume page
+        const isFromResume = window.location.state?.fromResume;
+        
+        if (!isFromResume) {
+            const savedFormData = localStorage.getItem('currentFormData');
+            if (savedFormData) {
+                try {
+                    const parsedData = JSON.parse(savedFormData);
+                    // Convert date string back to Date object
+                    if (parsedData.date) {
+                        parsedData.date = new Date(parsedData.date);
+                    }
+                    updateFormData(parsedData);
+                } catch (e) {
+                    console.error('Error parsing saved form data:', e);
+                }
             }
-            setFormData(prev => ({
-                ...prev,
-                ...parsedData
-            }));
         }
 
         const loadContacts = () => {
@@ -322,32 +317,18 @@ const Contact = () => {
 
     // Reset form
     const resetForm = () => {
-    setFormData({
-        id: '',
-        firstName: "",
-        lastName: "",
-        email: "",
-        mobileNumber: "",
-        gender: "",
-        lang: [],
-        date: new Date(),
-        address: "",
-        status: "college",
-        courses: "engineering",
-        skills: "",
-        experiences: ""
-    });
-    setError({});
-};
+        resetFormData();
+        setError({});
+    };
 
     // Handle edit
     const handleEdit = (contact) => {
-    setFormData({
-        ...contact,
-        date: new Date(contact.date) // Ensure date is a Date object
-    });
-    setOpen(true);
-};
+        updateFormData({
+            ...contact,
+            date: new Date(contact.date) // Ensure date is a Date object
+        });
+        setOpen(true);
+    };
 
     // Handle delete
     const handleDelete = (id) => {
@@ -392,19 +373,17 @@ const Contact = () => {
             });
         }
 
-        setFormData(previous => ({
-            ...previous,
+        updateFormData({
             [name]: type === 'checkbox' ? checked : value
-        }));
+        });
     };
 
     // Handle Radio Button Changes
     const handleRadioChange = (e) => {
         const { value } = e.target;
-        setFormData(previous => ({
-            ...previous,
+        updateFormData({
             gender: value
-        }));
+        });
 
         // Clear gender error when a selection is made
         if (error.gender) {
@@ -430,10 +409,9 @@ const Contact = () => {
             updatedLang = updatedLang.filter(lang => lang !== name);
         }
 
-        setFormData(previous => ({
-            ...previous,
+        updateFormData({
             lang: updatedLang
-        }));
+        });
 
         // Clear language error when a selection is made
         if (error.lang && updatedLang.length > 0) {
@@ -447,8 +425,10 @@ const Contact = () => {
     // Handle view details
     const handleViewDetails = (contact) => {
         setViewingContact(contact);
-        // Save the contact to localStorage when viewing details
-        localStorage.setItem('currentContact', JSON.stringify(contact));
+        // Update the resume context with the contact being viewed
+        setResume(contact);
+        // Navigate to resume page
+        navigate('/resume', { state: { fromContact: true } });
     };
 
     return (

@@ -19,23 +19,15 @@ const Resume = () => {
   const { resumeData, setResume } = useResume();
   const navigate = useNavigate();
 
-  // Only redirect to home if there's no resume data on initial load
+  // Redirect to contact if there's no resume data
   useEffect(() => {
     if (!resumeData) {
-      // Try to get the contact from localStorage if it exists
-      const savedContact = localStorage.getItem('currentContact');
-      if (savedContact) {
-        // If we have a saved contact, use it
-        setResume(JSON.parse(savedContact));
-      } else {
-        // Otherwise, redirect to home after a short delay
-        const timer = setTimeout(() => {
-          if (!resumeData) {
-            navigate('/');
-          }
-        }, 100);
-        return () => clearTimeout(timer);
-      }
+      const timer = setTimeout(() => {
+        if (!resumeData) {
+          navigate('/contact', { replace: true });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [resumeData, navigate]);
 
@@ -153,7 +145,7 @@ const Resume = () => {
               variant="outlined" 
               onClick={() => {
                 // Navigate back to contacts without clearing the resume data
-                navigate('/contact');
+                navigate('/contact', { state: { fromResume: true } });
               }}
             >
               Back to Contacts
