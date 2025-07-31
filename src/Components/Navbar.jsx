@@ -37,7 +37,7 @@ const Navbar = () => {
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center', width: 250 }}>
       <Typography variant="h6" sx={{ my: 2 }}>
         <Box component="div" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={titleLogo} alt="AnimeHub Logo" style={{ height: '40px', marginRight: '10px' }} />
+          <img src={titleLogo} alt="AnimeHub Logo" style={{ height: '40px', marginRight: '10px'}}/>
           <span>AnimeHub</span>
         </Box>
       </Typography>

@@ -21,8 +21,10 @@ a{
 .title-logo{
   width: 80px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 50px;
 }
+
+
 
 .nav-wrapper{
   display: flex;
