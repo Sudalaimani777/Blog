@@ -16,18 +16,35 @@ import {
 import Footer from "../Components/Footer";
 
 const Resume = () => {
-  const { resumeData } = useResume();
+  const { resumeData, setResume } = useResume();
   const navigate = useNavigate();
 
-  // Redirect to home if no resume data is available
+  // Only redirect to home if there's no resume data on initial load
   useEffect(() => {
     if (!resumeData) {
-      navigate('/');
+      // Try to get the contact from localStorage if it exists
+      const savedContact = localStorage.getItem('currentContact');
+      if (savedContact) {
+        // If we have a saved contact, use it
+        setResume(JSON.parse(savedContact));
+      } else {
+        // Otherwise, redirect to home after a short delay
+        const timer = setTimeout(() => {
+          if (!resumeData) {
+            navigate('/');
+          }
+        }, 100);
+        return () => clearTimeout(timer);
+      }
     }
   }, [resumeData, navigate]);
 
   if (!resumeData) {
-    return null; // or a loading spinner
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
@@ -134,7 +151,10 @@ const Resume = () => {
             </Button>
             <Button 
               variant="outlined" 
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                // Navigate back to contacts without clearing the resume data
+                navigate('/contact');
+              }}
             >
               Back to Contacts
             </Button>

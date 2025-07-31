@@ -90,8 +90,22 @@ const Contact = () => {
         return isNaN(date.getTime()) ? new Date() : date;
     };
 
-    // Load contacts from localStorage on component mount
+    // Load contacts and form data from localStorage on component mount
     useEffect(() => {
+        // Try to restore form data if it exists
+        const savedFormData = localStorage.getItem('currentFormData');
+        if (savedFormData) {
+            const parsedData = JSON.parse(savedFormData);
+            // Convert date string back to Date object
+            if (parsedData.date) {
+                parsedData.date = new Date(parsedData.date);
+            }
+            setFormData(prev => ({
+                ...prev,
+                ...parsedData
+            }));
+        }
+
         const loadContacts = () => {
             try {
                 const savedContacts = localStorage.getItem('contacts');
@@ -182,6 +196,22 @@ const Contact = () => {
             }
         }
     }, [contacts]);
+
+    // Save form data to localStorage whenever it changes
+    useEffect(() => {
+        // Don't save if the form is empty
+        if (formData.firstName || formData.lastName || formData.email || formData.mobileNumber) {
+            try {
+                localStorage.setItem('currentFormData', JSON.stringify({
+                    ...formData,
+                    // Convert Date object to ISO string for storage
+                    date: formData.date instanceof Date ? formData.date.toISOString() : formData.date
+                }));
+            } catch (e) {
+                console.error('Error saving form data:', e);
+            }
+        }
+    }, [formData]);
 
     // Form Validation
     const validateForm = () => {
@@ -417,6 +447,8 @@ const Contact = () => {
     // Handle view details
     const handleViewDetails = (contact) => {
         setViewingContact(contact);
+        // Save the contact to localStorage when viewing details
+        localStorage.setItem('currentContact', JSON.stringify(contact));
     };
 
     return (
@@ -884,7 +916,8 @@ const Contact = () => {
                                         color="primary"
                                         startIcon={<DownloadIcon />}
                                         onClick={() => {
-                                            setResume(viewingContact);
+                                            // Only set the resume data and navigate, don't clear the form
+                                            setResume({...viewingContact});
                                             navigate('/resume');
                                         }}
                                     >
