@@ -76,10 +76,17 @@ export const ResumeProvider = ({ children }) => {
                 if (parsedData.date) {
                     parsedData.date = new Date(parsedData.date);
                 }
-                setFormData(prev => ({
-                    ...FORM_INITIAL_STATE,
-                    ...parsedData
-                }));
+                // Only update if there's a difference
+                setFormData(prev => {
+                    const newFormData = {
+                        ...FORM_INITIAL_STATE,
+                        ...parsedData
+                    };
+                    // Only update if there's an actual change to prevent unnecessary re-renders
+                    return JSON.stringify(prev) === JSON.stringify(newFormData) 
+                        ? prev 
+                        : newFormData;
+                });
             }
         } catch (error) {
             console.error('Error loading form data from localStorage:', error);
@@ -88,13 +95,16 @@ export const ResumeProvider = ({ children }) => {
 
     // Save form data to localStorage when it changes
     useEffect(() => {
-        try {
-            localStorage.setItem('currentFormData', JSON.stringify({
-                ...formData,
-                date: formData.date instanceof Date ? formData.date.toISOString() : formData.date
-            }));
-        } catch (error) {
-            console.error('Error saving form data to localStorage:', error);
+        // Only save if formData is not the initial state
+        if (JSON.stringify(formData) !== JSON.stringify(FORM_INITIAL_STATE)) {
+            try {
+                localStorage.setItem('currentFormData', JSON.stringify({
+                    ...formData,
+                    date: formData.date instanceof Date ? formData.date.toISOString() : formData.date
+                }));
+            } catch (error) {
+                console.error('Error saving form data to localStorage:', error);
+            }
         }
     }, [formData]);
 
