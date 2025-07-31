@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResume } from '../contexts/ResumeContext';
 import { 
@@ -11,45 +11,34 @@ import {
   List, 
   ListItem, 
   ListItemText,
-  Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import DownloadIcon from '@mui/icons-material/Download';
+import PrintIcon from '@mui/icons-material/Print';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Footer from "../Components/Footer";
 
 const Resume = () => {
-  const { resumeData, setResume } = useResume();
+  const { currentResume, setResume, formData } = useResume();
   const navigate = useNavigate();
 
-  // Check for resume data in localStorage if not in context
+  // If no resume data is available, redirect to contact page
   useEffect(() => {
-    if (!resumeData) {
-      try {
-        const savedResume = localStorage.getItem('currentFormData');
-        if (savedResume) {
-          const parsedData = JSON.parse(savedResume);
-          // Only set resume data if we have valid data
-          if (parsedData.firstName || parsedData.lastName) {
-            setResume(parsedData);
-            return;
-          }
-        }
-        
-        // Only redirect if we couldn't load any resume data
-        const timer = setTimeout(() => {
-          navigate('/contact', { 
-            replace: true,
-            state: { fromResume: true }
-          });
-        }, 100);
-        
-        return () => clearTimeout(timer);
-      } catch (error) {
-        console.error('Error loading resume data:', error);
-        navigate('/contact', { replace: true });
-      }
+    if (!currentResume && !formData.firstName) {
+      const timer = setTimeout(() => {
+        navigate('/contact');
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [resumeData, navigate, setResume]);
+  }, [currentResume, formData, navigate]);
 
-  if (!resumeData) {
+  const resumeRef = useRef();
+
+  // If we're still loading or have no data, show loading spinner
+  if (!currentResume && !formData.firstName) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
@@ -57,9 +46,53 @@ const Resume = () => {
     );
   }
 
+  // Use currentResume if available, otherwise fall back to formData
+  const resumeData = currentResume || formData;
+
+  const handleDownloadPDF = () => {
+    const input = resumeRef.current;
+    
+    // Add a small delay to ensure the component is fully rendered
+    setTimeout(() => {
+      html2canvas(input, { 
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        allowTaint: true,
+        logging: true
+      }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 295; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+        
+        // Add first page
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        // Add additional pages if content is longer than one page
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+        
+        // Download the PDF
+        pdf.save(`${resumeData.firstName}_${resumeData.lastName}_Resume.pdf`);
+      }).catch(err => {
+        console.error('Error generating PDF:', err);
+        // Fallback to print if PDF generation fails
+        window.print();
+      });
+    }, 500);
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+      <Container maxWidth="md" sx={{ py: 4, flex: 1 }} ref={resumeRef}>
         <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
           <Box textAlign="center" mb={4}>
             <Typography variant="h3" component="h1" gutterBottom>
@@ -150,21 +183,26 @@ const Resume = () => {
             )}
           </Grid>
 
-          <Box mt={4} display="flex" justifyContent="center">
+          <Box mt={4} display="flex" justifyContent="center" gap={2}>
             <Button 
               variant="contained" 
               color="primary"
-              onClick={() => window.print()}
-              sx={{ mr: 2 }}
+              onClick={handleDownloadPDF}
+              startIcon={<DownloadIcon />}
             >
-              Print Resume
+              Download PDF
             </Button>
             <Button 
               variant="outlined" 
-              onClick={() => {
-                // Navigate back to contacts without clearing the resume data
-                navigate('/contact', { state: { fromResume: true } });
-              }}
+              onClick={() => window.print()}
+              startIcon={<PrintIcon />}
+            >
+              Print
+            </Button>
+            <Button 
+              variant="outlined" 
+              onClick={() => navigate('/contact')}
+              startIcon={<ArrowBackIcon />}
             >
               Back to Contacts
             </Button>

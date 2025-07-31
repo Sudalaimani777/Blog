@@ -48,19 +48,20 @@ import Footer from '../Components/Footer';
 
 const Contact = () => {
     const { 
+        currentResume,
         setResume, 
         formData, 
         updateFormData, 
         resetFormData,
-        setFormDirty
+        contacts,
+        addContact,
+        updateContact,
+        deleteContact
     } = useResume();
     const navigate = useNavigate();
 
     // State for storing the errors
     const [error, setError] = useState({});
-
-    // State for storing all contacts
-    const [contacts, setContacts] = useState([]);
 
     // State for dialog
     const [open, setOpen] = useState(false);
@@ -80,130 +81,24 @@ const Contact = () => {
         return isNaN(date.getTime()) ? new Date() : date;
     };
 
-    // Load contacts and form data from localStorage on component mount
+    // Set current resume from context if available
     useEffect(() => {
-        // Always try to restore form data from localStorage
-        const savedFormData = localStorage.getItem('currentFormData');
-        if (savedFormData) {
-            try {
-                const parsedData = JSON.parse(savedFormData);
-                // Convert date string back to Date object
-                if (parsedData.date) {
-                    parsedData.date = new Date(parsedData.date);
-                }
-                // Only update if we have actual data to restore
-                if (parsedData.firstName || parsedData.lastName || parsedData.email || parsedData.mobileNumber) {
-                    updateFormData(parsedData);
-                }
-            } catch (e) {
-                console.error('Error parsing saved form data:', e);
-            }
+        if (currentResume) {
+            updateFormData(currentResume);
         }
+    }, [currentResume, updateFormData]);
 
-        const loadContacts = () => {
-            try {
-                const savedContacts = localStorage.getItem('contacts');
-                if (savedContacts) {
-                    const parsedContacts = JSON.parse(savedContacts);
-                    if (!Array.isArray(parsedContacts)) {
-                        throw new Error('Invalid contacts data format');
-                    }
-                    
-                    const contactsWithDates = parsedContacts.map(contact => ({
-                        ...contact,
-                        date: parseDate(contact.date),
-                        // Ensure all required fields have default values
-                        firstName: contact.firstName || '',
-                        lastName: contact.lastName || '',
-                        email: contact.email || '',
-                        mobileNumber: contact.mobileNumber || '',
-                        gender: contact.gender || '',
-                        lang: Array.isArray(contact.lang) ? contact.lang : [],
-                        address: contact.address || '',
-                        status: contact.status || 'college',
-                        courses: contact.courses || 'engineering',
-                        skills: contact.skills || '',
-                        experiences: contact.experiences || ''
-                    }));
-                    
-                    setContacts(contactsWithDates);
-                }
-            } catch (error) {
-                console.error('Error loading contacts from localStorage:', error);
-                // Reset to empty array if there's an error
-                setContacts([]);
-                try {
-                    localStorage.removeItem('contacts');
-                } catch (e) {
-                    console.error('Error clearing corrupted contacts:', e);
-                }
-            }
-        };
-
-        loadContacts();
-    }, []);
-
-    // Save contacts to localStorage whenever it changes
+    // Save form data to localStorage when it changes
     useEffect(() => {
-        if (contacts.length === 0) {
-            // Only clear storage if we're sure it's empty
-            try {
-                const currentContacts = localStorage.getItem('contacts');
-                if (currentContacts && JSON.parse(currentContacts).length > 0) {
-                    localStorage.setItem('contacts', JSON.stringify([]));
-                }
-            } catch (e) {
-                console.error('Error checking current contacts:', e);
-            }
-            return;
-        }
-        
         try {
-            // Create a safe copy of contacts with proper serialization
-            const contactsForStorage = contacts.map(contact => {
-                const safeContact = { ...contact };
-                
-                // Ensure we have a valid date
-                const date = contact.date || new Date();
-                safeContact.date = (date instanceof Date ? date : new Date(date)).toISOString();
-                
-                // Ensure all required fields exist
-                safeContact.lang = Array.isArray(contact.lang) ? contact.lang : [];
-                
-                return safeContact;
-            });
-            
-            localStorage.setItem('contacts', JSON.stringify(contactsForStorage));
-        } catch (error) {
-            console.error('Error saving contacts to localStorage:', error);
-            // Try to recover by resetting to last good state
-            try {
-                const lastGoodState = localStorage.getItem('contacts');
-                if (lastGoodState) {
-                    setContacts(JSON.parse(lastGoodState).map(c => ({
-                        ...c,
-                        date: parseDate(c.date)
-                    })));
-                }
-            } catch (e) {
-                console.error('Error recovering from save error:', e);
-            }
-        }
-    }, [contacts]);
-
-    // Save form data to localStorage whenever it changes
-    useEffect(() => {
-        // Don't save if the form is empty
-        if (formData.firstName || formData.lastName || formData.email || formData.mobileNumber) {
-            try {
+            if (formData.firstName || formData.lastName || formData.email || formData.mobileNumber) {
                 localStorage.setItem('currentFormData', JSON.stringify({
                     ...formData,
-                    // Convert Date object to ISO string for storage
                     date: formData.date instanceof Date ? formData.date.toISOString() : formData.date
                 }));
-            } catch (e) {
-                console.error('Error saving form data:', e);
             }
+        } catch (e) {
+            console.error('Error saving form data:', e);
         }
     }, [formData]);
 
@@ -290,27 +185,36 @@ const Contact = () => {
         return isValid;
     };
 
-    // Handle Form Submission
-    const handleFormSubmission = (e) => {
+    // Handle form submission
+    const handleSubmit = (e) => {
         e.preventDefault();
-        if (validateForm()) {
+
+        // Validate form
+        const errors = validateForm(formData);
+        if (Object.keys(errors).length > 0) {
+            setError(errors);
+            return;
+        }
+
+        try {
             if (formData.id) {
                 // Update existing contact
-                setContacts(contacts.map(contact =>
-                    contact.id === formData.id ? formData : contact
-                ));
+                updateContact(formData.id, formData);
+                toast.success("Contact updated successfully!");
             } else {
                 // Add new contact
-                const newContact = {
-                    ...formData,
-                    id: Date.now().toString()
-                };
-                setContacts([...contacts, newContact]);
+                const newContact = addContact(formData);
+                // Update form with the new contact's ID
+                updateFormData({ id: newContact.id });
+                toast.success("Contact added successfully!");
             }
 
-            // Reset form
-            resetForm();
+            // Reset form and close dialog
+            resetFormData();
             setOpen(false);
+        } catch (error) {
+            console.error('Error saving contact:', error);
+            toast.error("Failed to save contact. Please try again.");
         }
     };
 
@@ -331,8 +235,13 @@ const Contact = () => {
 
     // Handle delete
     const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this contact?')) {
-            setContacts(contacts.filter(contact => contact.id !== id));
+        try {
+            deleteContact(id);
+            toast.success("Contact deleted successfully!");
+            setOpen(false);
+        } catch (error) {
+            console.error('Error deleting contact:', error);
+            toast.error("Failed to delete contact. Please try again.");
         }
     };
 
@@ -427,7 +336,7 @@ const Contact = () => {
         // Update the resume context with the contact being viewed
         setResume(contact);
         // Navigate to resume page
-        navigate('/resume', { state: { fromContact: true } });
+        navigate('/resume');
     };
 
     return (
@@ -540,7 +449,7 @@ const Contact = () => {
                     >
                         <Box 
                             component="form" 
-                            onSubmit={handleFormSubmission}
+                            onSubmit={handleSubmit}
                             sx={{ '& .MuiTextField-root': { mb: 2 } }}
                         >
                             <DialogTitle sx={{ 
