@@ -19,17 +19,35 @@ const Resume = () => {
   const { resumeData, setResume } = useResume();
   const navigate = useNavigate();
 
-  // Redirect to contact if there's no resume data
+  // Check for resume data in localStorage if not in context
   useEffect(() => {
     if (!resumeData) {
-      const timer = setTimeout(() => {
-        if (!resumeData) {
-          navigate('/contact', { replace: true });
+      try {
+        const savedResume = localStorage.getItem('currentFormData');
+        if (savedResume) {
+          const parsedData = JSON.parse(savedResume);
+          // Only set resume data if we have valid data
+          if (parsedData.firstName || parsedData.lastName) {
+            setResume(parsedData);
+            return;
+          }
         }
-      }, 100);
-      return () => clearTimeout(timer);
+        
+        // Only redirect if we couldn't load any resume data
+        const timer = setTimeout(() => {
+          navigate('/contact', { 
+            replace: true,
+            state: { fromResume: true }
+          });
+        }, 100);
+        
+        return () => clearTimeout(timer);
+      } catch (error) {
+        console.error('Error loading resume data:', error);
+        navigate('/contact', { replace: true });
+      }
     }
-  }, [resumeData, navigate]);
+  }, [resumeData, navigate, setResume]);
 
   if (!resumeData) {
     return (

@@ -82,22 +82,21 @@ const Contact = () => {
 
     // Load contacts and form data from localStorage on component mount
     useEffect(() => {
-        // Only try to restore form data if we're not coming from the Resume page
-        const isFromResume = window.location.state?.fromResume;
-        
-        if (!isFromResume) {
-            const savedFormData = localStorage.getItem('currentFormData');
-            if (savedFormData) {
-                try {
-                    const parsedData = JSON.parse(savedFormData);
-                    // Convert date string back to Date object
-                    if (parsedData.date) {
-                        parsedData.date = new Date(parsedData.date);
-                    }
-                    updateFormData(parsedData);
-                } catch (e) {
-                    console.error('Error parsing saved form data:', e);
+        // Always try to restore form data from localStorage
+        const savedFormData = localStorage.getItem('currentFormData');
+        if (savedFormData) {
+            try {
+                const parsedData = JSON.parse(savedFormData);
+                // Convert date string back to Date object
+                if (parsedData.date) {
+                    parsedData.date = new Date(parsedData.date);
                 }
+                // Only update if we have actual data to restore
+                if (parsedData.firstName || parsedData.lastName || parsedData.email || parsedData.mobileNumber) {
+                    updateFormData(parsedData);
+                }
+            } catch (e) {
+                console.error('Error parsing saved form data:', e);
             }
         }
 
