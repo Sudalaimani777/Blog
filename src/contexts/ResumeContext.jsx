@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useRef } from 'react';
 
 const ResumeContext = createContext();
 
@@ -28,6 +28,9 @@ const FORM_INITIAL_STATE = {
 };
 
 export const ResumeProvider = ({ children }) => {
+    // Refs
+    const isInitialMount = useRef(true);
+    
     // Current resume/contact being viewed
     const [currentResume, setCurrentResume] = useState(null);
     
@@ -69,42 +72,63 @@ export const ResumeProvider = ({ children }) => {
 
     // Load form data from localStorage on initial load
     useEffect(() => {
-        try {
-            const savedFormData = localStorage.getItem('currentFormData');
-            if (savedFormData) {
+        const loadFormData = () => {
+            try {
+                const savedFormData = localStorage.getItem('currentFormData');
+                if (!savedFormData) return;
+
                 const parsedData = JSON.parse(savedFormData);
-                if (parsedData.date) {
-                    parsedData.date = new Date(parsedData.date);
-                }
-                // Only update if there's a difference
-                setFormData(prev => {
-                    const newFormData = {
-                        ...FORM_INITIAL_STATE,
-                        ...parsedData
+                if (!parsedData) return;
+
+                // Only update if there's actual data and it's different from initial state
+                const hasData = Object.values(parsedData).some(val => 
+                    val !== null && val !== undefined && val !== '' && 
+                    (Array.isArray(val) ? val.length > 0 : true)
+                );
+
+                if (hasData) {
+                    const processedData = {
+                        ...parsedData,
+                        date: parsedData.date ? new Date(parsedData.date) : new Date()
                     };
-                    // Only update if there's an actual change to prevent unnecessary re-renders
-                    return JSON.stringify(prev) === JSON.stringify(newFormData) 
-                        ? prev 
-                        : newFormData;
-                });
+
+                    setFormData(prev => {
+                        // Only update if the data is actually different
+                        return JSON.stringify(prev) === JSON.stringify(processedData) 
+                            ? prev 
+                            : processedData;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading form data from localStorage:', error);
             }
-        } catch (error) {
-            console.error('Error loading form data from localStorage:', error);
-        }
+        };
+
+        loadFormData();
     }, []);
 
     // Save form data to localStorage when it changes
     useEffect(() => {
-        // Only save if formData is not the initial state
-        if (JSON.stringify(formData) !== JSON.stringify(FORM_INITIAL_STATE)) {
-            try {
-                localStorage.setItem('currentFormData', JSON.stringify({
-                    ...formData,
-                    date: formData.date instanceof Date ? formData.date.toISOString() : formData.date
-                }));
-            } catch (error) {
-                console.error('Error saving form data to localStorage:', error);
-            }
+        // Don't save on initial render
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        // Don't save if formData is the same as initial state
+        if (JSON.stringify(formData) === JSON.stringify(FORM_INITIAL_STATE)) {
+            return;
+        }
+
+        try {
+            const dataToSave = {
+                ...formData,
+                date: formData.date instanceof Date ? formData.date.toISOString() : formData.date
+            };
+            
+            localStorage.setItem('currentFormData', JSON.stringify(dataToSave));
+        } catch (error) {
+            console.error('Error saving form data to localStorage:', error);
         }
     }, [formData]);
 
