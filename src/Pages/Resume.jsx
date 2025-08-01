@@ -38,6 +38,7 @@ const Resume = () => {
   }, [currentResume, formData.firstName, navigate]);
 
   const resumeRef = useRef();
+  const resumeContentRef = useRef();
 
   // If we're still loading or have no data, show loading spinner
   if (!currentResume && !formData.firstName) {
@@ -52,15 +53,26 @@ const Resume = () => {
   const resumeData = currentResume || formData;
 
   const handleDownloadPDF = () => {
-    const input = resumeRef.current;
+    const input = resumeContentRef.current;
     
     // Add a small delay to ensure the component is fully rendered
     setTimeout(() => {
+      // Hide buttons and other elements we don't want in the PDF
+      const buttons = document.querySelectorAll('button, .no-print');
+      buttons.forEach(btn => (btn.style.display = 'none'));
+      
       html2canvas(input, { 
         scale: 2, // Higher scale for better quality
         useCORS: true,
         allowTaint: true,
-        logging: true
+        logging: true,
+        backgroundColor: '#ffffff',
+        ignoreElements: (element) => {
+          // Ignore elements with no-print class or buttons
+          return element.classList.contains('no-print') || 
+                 element.tagName === 'BUTTON' ||
+                 element.closest('button') !== null;
+        }
       }).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -84,8 +96,15 @@ const Resume = () => {
         
         // Download the PDF
         pdf.save(`${resumeData.firstName}_${resumeData.lastName}_Resume.pdf`);
+        
+        // Restore button visibility
+        const buttons = document.querySelectorAll('button, .no-print');
+        buttons.forEach(btn => (btn.style.display = ''));
       }).catch(err => {
         console.error('Error generating PDF:', err);
+        // Restore button visibility even if there's an error
+        const buttons = document.querySelectorAll('button, .no-print');
+        buttons.forEach(btn => (btn.style.display = ''));
         // Fallback to print if PDF generation fails
         window.print();
       });
@@ -93,8 +112,20 @@ const Resume = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Container maxWidth="md" sx={{ py: 4, flex: 1 }} ref={resumeRef}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }} ref={resumeRef}>
+      <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+        <Box sx={{ mb: 3 }} className="no-print">
+          <Button 
+            variant="contained" 
+            startIcon={<ArrowBackIcon />} 
+            onClick={() => navigate('/contact')}
+          >
+            Back to Form
+          </Button>
+        </Box>
+        
+        {/* This is the content that will be included in the PDF */}
+        <div ref={resumeContentRef}>
         <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
           <Box textAlign="center" mb={4}>
             <Typography variant="h3" component="h1" gutterBottom>
@@ -210,9 +241,10 @@ const Resume = () => {
             </Button>
           </Box>
         </Paper>
-      </Container>
-      <Footer />
-    </Box>
+          </div>
+        </Container>
+        <Footer className="no-print" />
+      </Box>
   );
 };
 
