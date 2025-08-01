@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useResume } from "../contexts/ResumeContext";
 import { ToastContainer, toast } from 'react-toastify';
@@ -85,34 +85,56 @@ const Contact = () => {
 
     // Set current resume from context if available
     const isMounted = useRef(false);
+    const initialRender = useRef(true);
+    
     useEffect(() => {
-        if (!isMounted.current && currentResume) {
-            updateFormData(currentResume);
-            isMounted.current = true;
-        }
-    }, [currentResume]); // Remove updateFormData from dependencies
-
-    // Save form data to localStorage when it changes
-    const prevFormDataRef = useRef();
-    useEffect(() => {
-        // Skip initial render and check if form data has actually changed
-        if (prevFormDataRef.current === JSON.stringify(formData)) {
+        if (initialRender.current) {
+            initialRender.current = false;
             return;
         }
         
-        prevFormDataRef.current = JSON.stringify(formData);
-        
+        if (currentResume) {
+            updateFormData(currentResume);
+        }
+    }, [currentResume]);
+
+    // Debounce function to limit the rate of localStorage updates
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    };
+
+    // Save form data to localStorage when it changes
+    const prevFormDataRef = useRef('');
+    
+    const saveToLocalStorage = useCallback(debounce((data) => {
         try {
-            if (formData.firstName || formData.lastName || formData.email || formData.mobileNumber) {
-                localStorage.setItem('currentFormData', JSON.stringify({
-                    ...formData,
-                    date: formData.date instanceof Date ? formData.date.toISOString() : formData.date
-                }));
+            if (data.firstName || data.lastName || data.email || data.mobileNumber) {
+                const dataToSave = {
+                    ...data,
+                    date: data.date instanceof Date ? data.date.toISOString() : data.date
+                };
+                localStorage.setItem('currentFormData', JSON.stringify(dataToSave));
             }
         } catch (e) {
             console.error('Error saving form data:', e);
         }
-    }, [formData]);
+    }, 500), []); // 500ms debounce delay
+
+    useEffect(() => {
+        const formDataString = JSON.stringify(formData);
+        
+        // Skip if form data hasn't changed
+        if (prevFormDataRef.current === formDataString) {
+            return;
+        }
+        
+        prevFormDataRef.current = formDataString;
+        saveToLocalStorage(formData);
+    }, [formData, saveToLocalStorage]);
 
     // Form Validation
     const validateForm = () => {
