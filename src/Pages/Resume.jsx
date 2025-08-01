@@ -27,13 +27,15 @@ const Resume = () => {
 
   // If no resume data is available, redirect to contact page
   useEffect(() => {
-    if (!currentResume && !formData.firstName) {
+    const hasNoData = !currentResume && !formData.firstName;
+    
+    if (hasNoData) {
       const timer = setTimeout(() => {
         navigate('/contact');
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [currentResume, formData, navigate]);
+  }, [currentResume, formData.firstName, navigate]);
 
   const resumeRef = useRef();
 
