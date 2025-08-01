@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useResume } from "../contexts/ResumeContext";
 import { ToastContainer, toast } from 'react-toastify';
@@ -84,14 +84,24 @@ const Contact = () => {
     };
 
     // Set current resume from context if available
+    const isMounted = useRef(false);
     useEffect(() => {
-        if (currentResume) {
+        if (!isMounted.current && currentResume) {
             updateFormData(currentResume);
+            isMounted.current = true;
         }
-    }, [currentResume, updateFormData]);
+    }, [currentResume]); // Remove updateFormData from dependencies
 
     // Save form data to localStorage when it changes
+    const prevFormDataRef = useRef();
     useEffect(() => {
+        // Skip initial render and check if form data has actually changed
+        if (prevFormDataRef.current === JSON.stringify(formData)) {
+            return;
+        }
+        
+        prevFormDataRef.current = JSON.stringify(formData);
+        
         try {
             if (formData.firstName || formData.lastName || formData.email || formData.mobileNumber) {
                 localStorage.setItem('currentFormData', JSON.stringify({
